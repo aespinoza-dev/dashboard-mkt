@@ -23,6 +23,8 @@
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTbq2tMWMLsO24IVSy5pkCZqiTL7mrfuGUiRr2fhir2KK4ZhXhQLxWALOGeV0PSuaQemb541bGGG7Q/pub?gid=0&single=true&output=csv";
 
+const PAISES_VALIDOS = ["Perú","Peru","Colombia","Guatemala","Costa Rica","República Dominicana","Republica Dominicana","Ecuador","El Salvador","Chile","México","Mexico"];
+
 const PAIS_COLORS = {
   "Peru":"#534AB7","Perú":"#534AB7","Colombia":"#1D9E75","Guatemala":"#D85A30",
   "Costa Rica":"#BA7517","República Dominicana":"#D4537E","Republica Dominicana":"#D4537E",
@@ -119,12 +121,13 @@ function App(){
   );
 
   const mesesDisponibles=[...new Set(rows.map(r=>(r.fechaRegistro||'').slice(5,7)).filter(Boolean))].sort();
-  const paisesDisponibles=[...new Set(rows.map(r=>r.pais).filter(Boolean))].sort();
+  const paisesDisponibles=[...new Set(rows.filter(r=>PAISES_VALIDOS.includes(r.pais)).map(r=>r.pais).filter(Boolean))].sort();
 
   const filtered=rows.filter(r=>{
     const okPais=pais==='all'||r.pais===pais;
     const okMes=mes==='all'||(r.fechaRegistro||'').slice(5,7)===mes;
-    return okPais&&okMes;
+    const okValido=PAISES_VALIDOS.includes(r.pais);
+    return okPais&&okMes&&okValido;
   });
 
   const totLeads=filtered.length;
