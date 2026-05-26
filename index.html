@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard MKT & CRM</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#111}
+    select{font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer}
+    button{cursor:pointer;font-family:inherit}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:#f0f0ee}
+    ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTbq2tMWMLsO24IVSy5pkCZqiTL7mrfuGUiRr2fhir2KK4ZhXhQLxWALOGeV0PSuaQemb541bGGG7Q/pub?gid=0&single=true&output=csv";
+
+const PAIS_COLORS = {
+  "Peru":"#534AB7","Perú":"#534AB7","Colombia":"#1D9E75","Guatemala":"#D85A30",
+  "Costa Rica":"#BA7517","República Dominicana":"#D4537E","Republica Dominicana":"#D4537E",
+  "Ecuador":"#378ADD","El Salvador":"#888780","Chile":"#0F6E56","México":"#E24B4A","Mexico":"#E24B4A"
+};
+const FLAG = {
+  "Peru":"🇵🇪","Perú":"🇵🇪","Colombia":"🇨🇴","Guatemala":"🇬🇹","Costa Rica":"🇨🇷",
+  "República Dominicana":"🇩🇴","Republica Dominicana":"🇩🇴","Ecuador":"🇪🇨",
+  "El Salvador":"🇸🇻","Chile":"🇨🇱","México":"🇲🇽","Mexico":"🇲🇽"
+};
+const MESES_MAP = {
+  '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio',
+  '07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'
+};
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g,""));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = "", inQ = false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){vals.push(cur.trim());cur="";}
+      else{cur+=line[i];}
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = (vals[i]||"").replace(/^"|"$/g,""); });
+    return obj;
+  });
+}
+
+const fmt$ = n => isNaN(n)?'$0':n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n);
+const fmtN = n => Math.round(n).toLocaleString();
+const pct = (a,b) => b?Math.round(a/b*100):0;
+
+function KPI({label,value,sub,subColor}){
+  return(
+    <div style={{background:'#f0f0ee',borderRadius:8,padding:'10px 14px'}}>
+      <div style={{fontSize:11,color:'#888',marginBottom:3}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:500,lineHeight:1}}>{value}</div>
+      {sub&&<div style={{fontSize:10,marginTop:3,color:subColor||'#888'}}>{sub}</div>}
+    </div>
+  );
+}
+
+function ProgBar({label,value,max,color,displayVal}){
+  const w=max?Math.round(value/max*100):0;
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+      <span style={{fontSize:11,color:'#666',width:100,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</span>
+      <div style={{flex:1,height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
+        <div style={{height:'100%',width:`${Math.min(100,w)}%`,background:color,borderRadius:3}}/>
+      </div>
+      <span style={{fontSize:11,fontWeight:500,width:40,textAlign:'right',flexShrink:0}}>{displayVal??value}</span>
+    </div>
+  );
+}
+
+function App(){
+  const [rows,setRows] = React.useState([]);
+  const [loading,setLoading] = React.useState(true);
+  const [error,setError] = React.useState(null);
+  const [pais,setPais] = React.useState('all');
+  const [mes,setMes] = React.useState('all');
+  const [tab,setTab] = React.useState('resumen');
+  const [lastUpdate,setLastUpdate] = React.useState('');
+
+  React.useEffect(()=>{
+    fetch(CSV_URL)
+      .then(r=>r.text())
+      .then(text=>{
+        setRows(parseCSV(text));
+        setLastUpdate(new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
+        setLoading(false);
+      })
+      .catch(()=>{setError('Error al cargar datos.');setLoading(false);});
+  },[]);
+
+  if(loading) return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}>
+      <div style={{fontSize:40}}>⏳</div>
+      <div style={{fontSize:14,color:'#666'}}>Cargando datos desde Google Sheets...</div>
+    </div>
+  );
+
+  if(error) return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}>
+      <div style={{fontSize:40}}>⚠️</div>
+      <div style={{fontSize:14,color:'#D85A30'}}>{error}</div>
+      <div style={{fontSize:12,color:'#aaa'}}>Verifica que el Sheet esté publicado como CSV</div>
+    </div>
+  );
+
+  const mesesDisponibles=[...new Set(rows.map(r=>(r.fechaRegistro||'').slice(5,7)).filter(Boolean))].sort();
+  const paisesDisponibles=[...new Set(rows.map(r=>r.pais).filter(Boolean))].sort();
+
+  const filtered=rows.filter(r=>{
+    const okPais=pais==='all'||r.pais===pais;
+    const okMes=mes==='all'||(r.fechaRegistro||'').slice(5,7)===mes;
+    return okPais&&okMes;
+  });
+
+  const totLeads=filtered.length;
+  const buenos=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('bueno')||r.calidadComercial?.toLowerCase().includes('bueno')).length;
+  const regulares=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('regular')||r.calidadComercial?.toLowerCase().includes('regular')).length;
+  const malos=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('malo')||r.calidadComercial?.toLowerCase().includes('malo')).length;
+  const sinAsignar=filtered.filter(r=>(r.calidad_simple||r.calidadComercial||'').toUpperCase().includes('SIN')).length;
+  const targets=filtered.filter(r=>r.es_target==='SI'||r.es_target==='true').length;
+  const convertidos=filtered.filter(r=>r.conversion&&r.conversion!=='PENDIENTE'&&r.conversion!=='').length;
+  const creoCuenta=filtered.filter(r=>r.creo_cuenta==='SI'||r.creo_cuenta==='si').length;
+
+  const byPais={};
+  filtered.forEach(r=>{
+    const p=r.pais||'Desconocido';
+    if(!byPais[p])byPais[p]={leads:0,buenos:0,targets:0,convertidos:0};
+    byPais[p].leads++;
+    if(r.calidad_simple?.toLowerCase().includes('bueno')||r.calidadComercial?.toLowerCase().includes('bueno'))byPais[p].buenos++;
+    if(r.es_target==='SI')byPais[p].targets++;
+    if(r.conversion&&r.conversion!=='PENDIENTE')byPais[p].convertidos++;
+  });
+  const paisList=Object.entries(byPais).sort((a,b)=>b[1].leads-a[1].leads);
+  const maxLeadsPais=Math.max(...paisList.map(([,v])=>v.leads),1);
+
+  const byCanal={};
+  filtered.forEach(r=>{const c=r.canal||'Otros';byCanal[c]=(byCanal[c]||0)+1;});
+  const canalList=Object.entries(byCanal).sort((a,b)=>b[1]-a[1]);
+  const maxCanal=Math.max(...canalList.map(([,v])=>v),1);
+
+  const byCampana={};
+  filtered.forEach(r=>{const c=r.campana||'Sin campaña';byCampana[c]=(byCampana[c]||0)+1;});
+  const campanaList=Object.entries(byCampana).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxCamp=Math.max(...campanaList.map(([,v])=>v),1);
+
+  const byMes={};
+  filtered.forEach(r=>{const m=(r.fechaRegistro||'').slice(0,7);if(m)byMes[m]=(byMes[m]||0)+1;});
+  const mesList=Object.entries(byMes).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxMesVal=Math.max(...mesList.map(([,v])=>v),1);
+
+  const byEstado={};
+  filtered.forEach(r=>{const e=r.estadoCliente||'Sin estado';byEstado[e]=(byEstado[e]||0)+1;});
+  const estadoList=Object.entries(byEstado).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  const card={background:'#fff',border:'0.5px solid #e0e0de',borderRadius:12,padding:'14px 16px'};
+  const cardHd={fontSize:11,fontWeight:500,color:'#888',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:12};
+
+  return(
+    <div style={{padding:16,minHeight:'100vh'}}>
+
+      {/* NAV */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:8}}>
+        <div style={{fontWeight:500,fontSize:15,display:'flex',alignItems:'center',gap:8}}>
+          📊 Marketing & CRM
+          <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>· {fmtN(rows.length)} leads · act. {lastUpdate}</span>
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          <select value={mes} onChange={e=>setMes(e.target.value)}>
+            <option value="all">📅 Todos los meses</option>
+            {mesesDisponibles.map(m=><option key={m} value={m}>{MESES_MAP[m]||m}</option>)}
+          </select>
+          <select value={pais} onChange={e=>setPais(e.target.value)}>
+            <option value="all">🌎 Todos los países</option>
+            {paisesDisponibles.map(p=><option key={p} value={p}>{FLAG[p]||'🏳️'} {p}</option>)}
+          </select>
+          <button onClick={()=>window.location.reload()}
+            style={{fontSize:12,padding:'5px 10px',borderRadius:8,border:'0.5px solid #ccc',background:'#fff'}}>
+            🔄 Actualizar
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
+        <KPI label="Leads totales" value={fmtN(totLeads)} sub={`de ${fmtN(rows.length)} en total`}/>
+        <KPI label="Leads buenos" value={fmtN(buenos)} sub={`${pct(buenos,totLeads)}% del total`} subColor="#1D9E75"/>
+        <KPI label="Es target" value={fmtN(targets)} sub={`${pct(targets,totLeads)}% son target`} subColor="#534AB7"/>
+        <KPI label="Conversiones" value={fmtN(convertidos)} sub={`${pct(convertidos,totLeads)}% conv.`} subColor="#D85A30"/>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:16}}>
+        <KPI label="Sin asignar" value={fmtN(sinAsignar)} sub={`${pct(sinAsignar,totLeads)}%`} subColor="#BA7517"/>
+        <KPI label="Regulares" value={fmtN(regulares)} sub={`${pct(regulares,totLeads)}%`}/>
+        <KPI label="Malos" value={fmtN(malos)} sub={`${pct(malos,totLeads)}%`} subColor="#D85A30"/>
+        <KPI label="Creó cuenta" value={fmtN(creoCuenta)} sub={`${pct(creoCuenta,totLeads)}%`} subColor="#1D9E75"/>
+      </div>
+
+      {/* TABS */}
+      <div style={{display:'flex',gap:2,background:'#e8e8e6',padding:3,borderRadius:8,width:'fit-content',marginBottom:14}}>
+        {['resumen','calidad','campañas','pipeline'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{fontSize:11,padding:'5px 14px',borderRadius:6,border:'none',
+              background:tab===t?'#fff':'transparent',fontWeight:tab===t?500:400,color:tab===t?'#111':'#666'}}>
+            {t.charAt(0).toUpperCase()+t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* RESUMEN */}
+      {tab==='resumen'&&(
+        <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr',gap:10}}>
+          <div style={card}>
+            <div style={cardHd}>Leads por país</div>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+              <thead><tr>
+                {['País','Leads','Buenos','Target','Conv.'].map(h=>(
+                  <th key={h} style={{textAlign:h==='País'?'left':'right',color:'#aaa',fontWeight:500,padding:'4px 6px 8px',borderBottom:'0.5px solid #e0e0de'}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {paisList.map(([p,v])=>(
+                  <tr key={p}>
+                    <td style={{padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee'}}>
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
+                        <span style={{width:7,height:7,borderRadius:'50%',background:PAIS_COLORS[p]||'#ccc',display:'inline-block'}}/>
+                        {FLAG[p]||'🏳️'} {p}
+                      </span>
+                    </td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',fontWeight:500}}>{fmtN(v.leads)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#1D9E75'}}>{fmtN(v.buenos)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#534AB7'}}>{fmtN(v.targets)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee'}}>
+                      <span style={{background:v.convertidos>0?'#E1F5EE':'#f5f5f3',color:v.convertidos>0?'#0F6E56':'#888',fontSize:9,padding:'2px 6px',borderRadius:10}}>
+                        {pct(v.convertidos,v.leads)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div style={card}>
+              <div style={cardHd}>Por canal</div>
+              {canalList.map(([c,v])=>(
+                <ProgBar key={c} label={c} value={v} max={maxCanal} color="#534AB7" displayVal={fmtN(v)}/>
+              ))}
+            </div>
+            <div style={card}>
+              <div style={cardHd}>Tendencia mensual</div>
+              <div style={{display:'flex',alignItems:'flex-end',gap:3,height:60}}>
+                {mesList.map(([m,v],i)=>{
+                  const h=Math.max(4,Math.round(v/maxMesVal*60));
+                  return(
+                    <div key={m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                      <div style={{fontSize:9,color:'#aaa'}}>{v>50?fmtN(v):''}</div>
+                      <div style={{height:h,width:'100%',background:i===mesList.length-1?'#534AB7':'#d0cfe8',borderRadius:'2px 2px 0 0'}}/>
+                      <div style={{fontSize:9,color:'#aaa'}}>{m.slice(5)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CALIDAD */}
+      {tab==='calidad'&&(
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <div style={card}>
+            <div style={cardHd}>Distribución de calidad</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+              {[
+                {label:'Buenos',val:buenos,bg:'#E1F5EE',bc:'#9FE1CB',tc:'#085041',sc:'#1D9E75'},
+                {label:'Regulares',val:regulares,bg:'#FAEEDA',bc:'#FAC775',tc:'#633806',sc:'#BA7517'},
+                {label:'Malos',val:malos,bg:'#FCEBEB',bc:'#F7C1C1',tc:'#791F1F',sc:'#E24B4A'},
+                {label:'Sin asignar',val:sinAsignar,bg:'#F1EFE8',bc:'#D3D1C7',tc:'#444441',sc:'#888780'},
+              ].map(q=>(
+                <div key={q.label} style={{background:q.bg,border:`0.5px solid ${q.bc}`,borderRadius:8,padding:'10px 12px'}}>
+                  <div style={{fontSize:10,fontWeight:500,color:q.sc,marginBottom:4}}>{q.label}</div>
+                  <div style={{fontSize:26,fontWeight:500,color:q.tc,lineHeight:1}}>{fmtN(q.val)}</div>
+                  <div style={{fontSize:10,color:q.sc,marginTop:3}}>{pct(q.val,totLeads)}% del total</div>
+                </div>
+              ))}
+            </div>
+            <div style={{height:8,borderRadius:4,overflow:'hidden',display:'flex'}}>
+              {[{v:buenos,c:'#1D9E75'},{v:regulares,c:'#BA7517'},{v:malos,c:'#E24B4A'},{v:sinAsignar,c:'#ccc'}].map((s,i)=>(
+                <div key={i} style={{flex:Math.max(s.v,0.1),background:s.c}}/>
+              ))}
+            </div>
+          </div>
+          <div style={card}>
+            <div style={cardHd}>Calidad por país</div>
+            {paisList.map(([p,v])=>{
+              const tot=v.leads||1;
+              return(
+                <div key={p} style={{marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:500,marginBottom:4,display:'flex',alignItems:'center',gap:5}}>
+                    <span style={{width:7,height:7,borderRadius:'50%',background:PAIS_COLORS[p]||'#ccc',display:'inline-block'}}/>
+                    {FLAG[p]||'🏳️'} {p}
+                    <span style={{marginLeft:'auto',fontSize:10,color:'#aaa'}}>{pct(v.buenos,tot)}% buenos</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,overflow:'hidden',display:'flex'}}>
+                    <div style={{flex:Math.max(v.buenos,0.1),background:'#1D9E75'}}/>
+                    <div style={{flex:Math.max(tot-v.buenos,0.1),background:'#e8e8e6'}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* CAMPAÑAS */}
+      {tab==='campañas'&&(
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <div style={card}>
+            <div style={cardHd}>Top campañas</div>
+            {campanaList.map(([c,v])=>(
+              <ProgBar key={c} label={c.length>32?c.slice(0,30)+'…':c} value={v} max={maxCamp} color="#534AB7" displayVal={fmtN(v)}/>
+            ))}
+          </div>
+          <div style={card}>
+            <div style={cardHd}>Estado del lead</div>
+            {estadoList.map(([e,v])=>(
+              <ProgBar key={e} label={e.length>28?e.slice(0,26)+'…':e} value={v} max={estadoList[0]?.[1]||1} color="#1D9E75" displayVal={fmtN(v)}/>
+            ))}
+            <div style={{marginTop:16,paddingTop:12,borderTop:'0.5px solid #e8e8e6'}}>
+              <div style={{fontSize:11,color:'#888',marginBottom:6}}>Creó cuenta</div>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div style={{flex:1,height:8,background:'#e8e8e6',borderRadius:4,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pct(creoCuenta,totLeads)}%`,background:'#1D9E75',borderRadius:4}}/>
+                </div>
+                <span style={{fontSize:13,fontWeight:500,color:'#1D9E75'}}>{pct(creoCuenta,totLeads)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIPELINE */}
+      {tab==='pipeline'&&(
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <div style={card}>
+            <div style={cardHd}>Volumen por país</div>
+            {paisList.map(([p,v])=>(
+              <ProgBar key={p} label={`${FLAG[p]||'🏳️'} ${p}`} value={v.leads} max={maxLeadsPais} color={PAIS_COLORS[p]||'#ccc'} displayVal={fmtN(v.leads)}/>
+            ))}
+          </div>
+          <div style={card}>
+            <div style={cardHd}>Conversión por país</div>
+            {paisList.map(([p,v])=>(
+              <div key={p} style={{marginBottom:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:11,color:'#555'}}>{FLAG[p]||'🏳️'} {p}</span>
+                  <span style={{fontSize:11,color:'#aaa'}}>{fmtN(v.convertidos)} conv.</span>
+                </div>
+                <div style={{height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${Math.min(100,pct(v.convertidos,v.leads)*5)}%`,background:PAIS_COLORS[p]||'#ccc',borderRadius:3}}/>
+                </div>
+                <div style={{fontSize:9,color:'#aaa',marginTop:2}}>
+                  {pct(v.convertidos,v.leads)}% conv · {pct(v.buenos,v.leads)}% buenos
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
