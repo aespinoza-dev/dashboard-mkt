@@ -131,11 +131,19 @@ function App(){
   });
 
   const totLeads=filtered.length;
-  const buenos=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('bueno')||r.calidadComercial?.toLowerCase().includes('bueno')).length;
-  const regulares=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('regular')||r.calidadComercial?.toLowerCase().includes('regular')).length;
-  const malos=filtered.filter(r=>r.calidad_simple?.toLowerCase().includes('malo')||r.calidadComercial?.toLowerCase().includes('malo')).length;
-  const sinAsignar=filtered.filter(r=>(r.calidad_simple||r.calidadComercial||'').toUpperCase().includes('SIN')).length;
-  const targets=filtered.filter(r=>r.es_target==='SI'||r.es_target==='true').length;
+
+  // Segmentos de target
+  const targetSI=filtered.filter(r=>r.es_target==='SI');
+  const targetNO=filtered.filter(r=>r.es_target==='NO');
+  const targetSinContactar=filtered.filter(r=>r.es_target==='Sin contactar');
+
+  // Calidad SOLO de leads con es_target=SI
+  const buenos=targetSI.filter(r=>r.calidad_simple==='Bueno').length;
+  const regulares=targetSI.filter(r=>r.calidad_simple==='Regular').length;
+  const malos=targetSI.filter(r=>r.calidad_simple==='Malo').length;
+  const sinAsignar=targetSI.filter(r=>r.calidad_simple==='Sin asignar').length;
+
+  const targets=targetSI.length;
   const convertidos=filtered.filter(r=>r.conversion&&r.conversion!=='PENDIENTE'&&r.conversion!=='').length;
   const creoCuenta=filtered.filter(r=>r.creo_cuenta==='SI'||r.creo_cuenta==='si').length;
 
@@ -198,18 +206,24 @@ function App(){
         </div>
       </div>
 
-      {/* KPIs */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
         <KPI label="Leads totales" value={fmtN(totLeads)} sub={`de ${fmtN(rows.length)} en total`}/>
-        <KPI label="Leads buenos" value={fmtN(buenos)} sub={`${pct(buenos,totLeads)}% del total`} subColor="#1D9E75"/>
-        <KPI label="Es target" value={fmtN(targets)} sub={`${pct(targets,totLeads)}% son target`} subColor="#534AB7"/>
-        <KPI label="Conversiones" value={fmtN(convertidos)} sub={`${pct(convertidos,totLeads)}% conv.`} subColor="#D85A30"/>
+        <KPI label="🎯 Target SI" value={fmtN(targets)} sub={`${pct(targets,totLeads)}% del total`} subColor="#534AB7"/>
+        <KPI label="⛔ Target NO" value={fmtN(targetNO.length)} sub={`${pct(targetNO.length,totLeads)}%`} subColor="#D85A30"/>
+        <KPI label="📵 Sin contactar" value={fmtN(targetSinContactar.length)} sub={`${pct(targetSinContactar.length,totLeads)}%`} subColor="#BA7517"/>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:16}}>
-        <KPI label="Sin asignar" value={fmtN(sinAsignar)} sub={`${pct(sinAsignar,totLeads)}%`} subColor="#BA7517"/>
-        <KPI label="Regulares" value={fmtN(regulares)} sub={`${pct(regulares,totLeads)}%`}/>
-        <KPI label="Malos" value={fmtN(malos)} sub={`${pct(malos,totLeads)}%`} subColor="#D85A30"/>
-        <KPI label="Creó cuenta" value={fmtN(creoCuenta)} sub={`${pct(creoCuenta,totLeads)}%`} subColor="#1D9E75"/>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:8}}>
+        <KPI label="✅ Buenos" value={fmtN(buenos)} sub={`${pct(buenos,targets)}% de targets`} subColor="#1D9E75"/>
+        <KPI label="🟡 Regulares" value={fmtN(regulares)} sub={`${pct(regulares,targets)}% de targets`} subColor="#BA7517"/>
+        <KPI label="🔴 Malos" value={fmtN(malos)} sub={`${pct(malos,targets)}% de targets`} subColor="#D85A30"/>
+        <KPI label="⬜ Sin asignar" value={fmtN(sinAsignar)} sub={`${pct(sinAsignar,targets)}% de targets`} subColor="#888"/>
+      </div>
+      {/* Validación funnel */}
+      <div style={{marginBottom:16,padding:'8px 12px',background: buenos+regulares+malos+sinAsignar===targets?'#E1F5EE':'#FCEBEB',borderRadius:8,fontSize:11,color:buenos+regulares+malos+sinAsignar===targets?'#0F6E56':'#A32D2D'}}>
+        {buenos+regulares+malos+sinAsignar===targets
+          ? `✅ Funnel correcto — ${targets} targets = ${buenos} buenos + ${regulares} regulares + ${malos} malos + ${sinAsignar} sin asignar`
+          : `⚠️ Verificar — targets: ${targets} ≠ suma calidad: ${buenos+regulares+malos+sinAsignar}`
+        }
       </div>
 
       {/* TABS */}
@@ -286,18 +300,18 @@ function App(){
       {tab==='calidad'&&(
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           <div style={card}>
-            <div style={cardHd}>Distribución de calidad</div>
+            <div style={cardHd}>Funnel · Solo Target SI ({fmtN(targets)} leads)</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
               {[
-                {label:'Buenos',val:buenos,bg:'#E1F5EE',bc:'#9FE1CB',tc:'#085041',sc:'#1D9E75'},
-                {label:'Regulares',val:regulares,bg:'#FAEEDA',bc:'#FAC775',tc:'#633806',sc:'#BA7517'},
-                {label:'Malos',val:malos,bg:'#FCEBEB',bc:'#F7C1C1',tc:'#791F1F',sc:'#E24B4A'},
-                {label:'Sin asignar',val:sinAsignar,bg:'#F1EFE8',bc:'#D3D1C7',tc:'#444441',sc:'#888780'},
+                {label:'✅ Buenos',val:buenos,bg:'#E1F5EE',bc:'#9FE1CB',tc:'#085041',sc:'#1D9E75'},
+                {label:'🟡 Regulares',val:regulares,bg:'#FAEEDA',bc:'#FAC775',tc:'#633806',sc:'#BA7517'},
+                {label:'🔴 Malos',val:malos,bg:'#FCEBEB',bc:'#F7C1C1',tc:'#791F1F',sc:'#E24B4A'},
+                {label:'⬜ Sin asignar',val:sinAsignar,bg:'#F1EFE8',bc:'#D3D1C7',tc:'#444441',sc:'#888780'},
               ].map(q=>(
                 <div key={q.label} style={{background:q.bg,border:`0.5px solid ${q.bc}`,borderRadius:8,padding:'10px 12px'}}>
                   <div style={{fontSize:10,fontWeight:500,color:q.sc,marginBottom:4}}>{q.label}</div>
                   <div style={{fontSize:26,fontWeight:500,color:q.tc,lineHeight:1}}>{fmtN(q.val)}</div>
-                  <div style={{fontSize:10,color:q.sc,marginTop:3}}>{pct(q.val,totLeads)}% del total</div>
+                  <div style={{fontSize:10,color:q.sc,marginTop:3}}>{pct(q.val,targets)}% de targets</div>
                 </div>
               ))}
             </div>
@@ -306,25 +320,46 @@ function App(){
                 <div key={i} style={{flex:Math.max(s.v,0.1),background:s.c}}/>
               ))}
             </div>
+            <div style={{marginTop:12,padding:'8px 10px',background:'#f5f5f3',borderRadius:6,fontSize:11,color:'#555'}}>
+              <strong>Total Target SI:</strong> {targets} = {buenos}B + {regulares}R + {malos}M + {sinAsignar}SA
+            </div>
           </div>
           <div style={card}>
-            <div style={cardHd}>Calidad por país</div>
-            {paisList.map(([p,v])=>{
-              const tot=v.leads||1;
-              return(
-                <div key={p} style={{marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:500,marginBottom:4,display:'flex',alignItems:'center',gap:5}}>
-                    <span style={{width:7,height:7,borderRadius:'50%',background:PAIS_COLORS[p]||'#ccc',display:'inline-block'}}/>
-                    {FLAG[p]||'🏳️'} {p}
-                    <span style={{marginLeft:'auto',fontSize:10,color:'#aaa'}}>{pct(v.buenos,tot)}% buenos</span>
-                  </div>
-                  <div style={{height:6,borderRadius:3,overflow:'hidden',display:'flex'}}>
-                    <div style={{flex:Math.max(v.buenos,0.1),background:'#1D9E75'}}/>
-                    <div style={{flex:Math.max(tot-v.buenos,0.1),background:'#e8e8e6'}}/>
-                  </div>
+            <div style={cardHd}>Distribución general de leads</div>
+            {[
+              {label:'🎯 Target SI',val:targets,color:'#534AB7'},
+              {label:'⛔ Target NO',val:targetNO.length,color:'#D85A30'},
+              {label:'📵 Sin contactar',val:targetSinContactar.length,color:'#BA7517'},
+            ].map(s=>(
+              <div key={s.label} style={{marginBottom:14}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:11,color:'#555'}}>{s.label}</span>
+                  <span style={{fontSize:11,fontWeight:500}}>{fmtN(s.val)} <span style={{color:'#aaa',fontWeight:400}}>({pct(s.val,totLeads)}%)</span></span>
                 </div>
-              );
-            })}
+                <div style={{height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pct(s.val,totLeads)}%`,background:s.color,borderRadius:3}}/>
+                </div>
+              </div>
+            ))}
+            <div style={{marginTop:16,paddingTop:12,borderTop:'0.5px solid #e8e8e6'}}>
+              <div style={{fontSize:11,color:'#888',marginBottom:8}}>Calidad por país · solo Target SI</div>
+              {paisList.map(([p,v])=>{
+                const tSI=targetSI.filter(r=>r.pais===p).length||1;
+                const bSI=targetSI.filter(r=>r.pais===p&&r.calidad_simple==='Bueno').length;
+                return(
+                  <div key={p} style={{marginBottom:10}}>
+                    <div style={{fontSize:11,marginBottom:3,display:'flex',justifyContent:'space-between'}}>
+                      <span>{FLAG[p]||'🏳️'} {p}</span>
+                      <span style={{color:'#aaa',fontSize:10}}>{pct(bSI,tSI)}% buenos</span>
+                    </div>
+                    <div style={{height:5,borderRadius:3,overflow:'hidden',display:'flex'}}>
+                      <div style={{flex:Math.max(bSI,0.1),background:'#1D9E75'}}/>
+                      <div style={{flex:Math.max(tSI-bSI,0.1),background:'#e8e8e6'}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
