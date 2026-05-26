@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard MKT & CRM</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -10,72 +10,73 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,sans-serif;background:#f8f8f6;color:#111}
-    select{font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer}
-    button{cursor:pointer;font-family:inherit}
+    select,button{font-family:inherit;cursor:pointer}
     ::-webkit-scrollbar{width:4px;height:4px}
     ::-webkit-scrollbar-track{background:#f0f0ee}
     ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+    .kpi-btn{background:#f0f0ee;border:none;border-radius:8px;padding:10px 14px;text-align:left;width:100%;transition:all .15s}
+    .kpi-btn:hover{background:#e8e6ff;cursor:pointer;transform:translateY(-1px);box-shadow:0 2px 8px rgba(83,74,183,.15)}
+    .kpi-btn.active{background:#534AB7;color:#fff}
+    .kpi-btn.active .kpi-lbl,.kpi-btn.active .kpi-sub{color:rgba(255,255,255,.75)}
+    .tab-btn{font-size:11px;padding:5px 14px;border-radius:6px;border:none;background:transparent;color:#666}
+    .tab-btn.on{background:#fff;font-weight:500;color:#111;border:0.5px solid #e0e0de}
+    .leads-panel{position:fixed;top:0;right:0;height:100vh;width:520px;background:#fff;border-left:1px solid #e0e0de;z-index:100;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.08)}
+    .leads-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:99}
+    .lead-row{padding:10px 16px;border-bottom:0.5px solid #f0f0ee;cursor:pointer;transition:background .1s}
+    .lead-row:hover{background:#f8f8f6}
+    .badge{display:inline-block;font-size:9px;font-weight:500;padding:2px 7px;border-radius:10px}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTbq2tMWMLsO24IVSy5pkCZqiTL7mrfuGUiRr2fhir2KK4ZhXhQLxWALOGeV0PSuaQemb541bGGG7Q/pub?gid=0&single=true&output=csv";
+const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSTbq2tMWMLsO24IVSy5pkCZqiTL7mrfuGUiRr2fhir2KK4ZhXhQLxWALOGeV0PSuaQemb541bGGG7Q/pub?gid=0&single=true&output=csv";
 
-const PAISES_VALIDOS = ["Perú","Peru","Colombia","Guatemala","Costa Rica","República Dominicana","Republica Dominicana","Ecuador","El Salvador","Chile","México","Mexico"];
+const PAISES_VALIDOS=["Perú","Peru","Colombia","Guatemala","Costa Rica","República Dominicana","Republica Dominicana","Ecuador","El Salvador","Chile","México","Mexico"];
+const PAIS_COLORS={"Peru":"#534AB7","Perú":"#534AB7","Colombia":"#1D9E75","Guatemala":"#D85A30","Costa Rica":"#BA7517","República Dominicana":"#D4537E","Republica Dominicana":"#D4537E","Ecuador":"#378ADD","El Salvador":"#888780","Chile":"#0F6E56","México":"#E24B4A","Mexico":"#E24B4A"};
+const FLAG={"Peru":"🇵🇪","Perú":"🇵🇪","Colombia":"🇨🇴","Guatemala":"🇬🇹","Costa Rica":"🇨🇷","República Dominicana":"🇩🇴","Republica Dominicana":"🇩🇴","Ecuador":"🇪🇨","El Salvador":"🇸🇻","Chile":"🇨🇱","México":"🇲🇽","Mexico":"🇲🇽"};
+const MESES_MAP={'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
+const CALIDAD_STYLE={Bueno:{bg:'#E1F5EE',color:'#0F6E56'},Regular:{bg:'#FAEEDA',color:'#854F0B'},Malo:{bg:'#FCEBEB',color:'#A32D2D'},'Sin asignar':{bg:'#f0f0ee',color:'#666'},Nulo:{bg:'#f0f0ee',color:'#aaa'}};
+const TARGET_STYLE={SI:{bg:'#e8e6ff',color:'#534AB7'},NO:{bg:'#FCEBEB',color:'#A32D2D'},'Sin contactar':{bg:'#FAEEDA',color:'#854F0B'}};
 
-const PAIS_COLORS = {
-  "Peru":"#534AB7","Perú":"#534AB7","Colombia":"#1D9E75","Guatemala":"#D85A30",
-  "Costa Rica":"#BA7517","República Dominicana":"#D4537E","Republica Dominicana":"#D4537E",
-  "Ecuador":"#378ADD","El Salvador":"#888780","Chile":"#0F6E56","México":"#E24B4A","Mexico":"#E24B4A"
-};
-const FLAG = {
-  "Peru":"🇵🇪","Perú":"🇵🇪","Colombia":"🇨🇴","Guatemala":"🇬🇹","Costa Rica":"🇨🇷",
-  "República Dominicana":"🇩🇴","Republica Dominicana":"🇩🇴","Ecuador":"🇪🇨",
-  "El Salvador":"🇸🇻","Chile":"🇨🇱","México":"🇲🇽","Mexico":"🇲🇽"
-};
-const MESES_MAP = {
-  '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio',
-  '07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'
-};
-
-function parseCSV(text) {
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g,""));
-  return lines.slice(1).map(line => {
-    const vals = [];
-    let cur = "", inQ = false;
+function parseCSV(text){
+  const lines=text.trim().split("\n");
+  const headers=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,""));
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur="",inQ=false;
     for(let i=0;i<line.length;i++){
       if(line[i]==='"'){inQ=!inQ;}
       else if(line[i]===','&&!inQ){vals.push(cur.trim());cur="";}
       else{cur+=line[i];}
     }
     vals.push(cur.trim());
-    const obj = {};
-    headers.forEach((h,i) => { obj[h] = (vals[i]||"").replace(/^"|"$/g,""); });
+    const obj={};
+    headers.forEach((h,i)=>{obj[h]=(vals[i]||"").replace(/^"|"$/g,"");});
     return obj;
   });
 }
 
-const fmt$ = n => isNaN(n)?'$0':n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n);
-const fmtN = n => Math.round(n).toLocaleString();
-const pct = (a,b) => b?Math.round(a/b*100):0;
+const fmt$=n=>isNaN(n)?'$0':n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n);
+const fmtN=n=>Math.round(n).toLocaleString();
+const pct=(a,b)=>b?Math.round(a/b*100):0;
 
-function KPI({label,value,sub,subColor}){
+function KPIBtn({label,value,sub,subColor,active,onClick,activeColor='#534AB7'}){
   return(
-    <div style={{background:'#f0f0ee',borderRadius:8,padding:'10px 14px'}}>
-      <div style={{fontSize:11,color:'#888',marginBottom:3}}>{label}</div>
+    <button className={`kpi-btn${active?' active':''}`} onClick={onClick}
+      style={active?{background:activeColor}:{}}>
+      <div className="kpi-lbl" style={{fontSize:11,color:active?'rgba(255,255,255,.75)':'#888',marginBottom:3}}>{label}</div>
       <div style={{fontSize:20,fontWeight:500,lineHeight:1}}>{value}</div>
-      {sub&&<div style={{fontSize:10,marginTop:3,color:subColor||'#888'}}>{sub}</div>}
-    </div>
+      {sub&&<div className="kpi-sub" style={{fontSize:10,marginTop:3,color:active?'rgba(255,255,255,.75)':(subColor||'#888')}}>{sub}</div>}
+    </button>
   );
 }
 
-function ProgBar({label,value,max,color,displayVal}){
+function ProgBar({label,value,max,color,displayVal,onClick}){
   const w=max?Math.round(value/max*100):0;
   return(
-    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,cursor:onClick?'pointer':'default',padding:'4px 0',borderRadius:6}}
+      onClick={onClick}>
       <span style={{fontSize:11,color:'#666',width:100,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</span>
       <div style={{flex:1,height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
         <div style={{height:'100%',width:`${Math.min(100,w)}%`,background:color,borderRadius:3}}/>
@@ -85,40 +86,141 @@ function ProgBar({label,value,max,color,displayVal}){
   );
 }
 
+// Panel lateral con lista de leads
+function LeadsPanel({leads,title,onClose,onSelectLead}){
+  const [search,setSearch]=React.useState('');
+  const filtered=leads.filter(r=>
+    (r.nombre||'').toLowerCase().includes(search.toLowerCase())||
+    (r.pais||'').toLowerCase().includes(search.toLowerCase())||
+    (r.campana||'').toLowerCase().includes(search.toLowerCase())||
+    (r.asesor||'').toLowerCase().includes(search.toLowerCase())
+  );
+  return(
+    <>
+      <div className="leads-overlay" onClick={onClose}/>
+      <div className="leads-panel">
+        {/* Header */}
+        <div style={{padding:'14px 16px',borderBottom:'0.5px solid #e0e0de',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+          <div>
+            <div style={{fontWeight:500,fontSize:14}}>{title}</div>
+            <div style={{fontSize:11,color:'#888',marginTop:2}}>{fmtN(leads.length)} leads</div>
+          </div>
+          <button onClick={onClose} style={{border:'none',background:'#f0f0ee',borderRadius:6,padding:'6px 10px',fontSize:12}}>✕ Cerrar</button>
+        </div>
+        {/* Search */}
+        <div style={{padding:'10px 16px',borderBottom:'0.5px solid #f0f0ee',flexShrink:0}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="Buscar por nombre, país, campaña, asesor..."
+            style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'0.5px solid #e0e0de',fontSize:12,background:'#f8f8f6',outline:'none'}}/>
+        </div>
+        {/* Lista */}
+        <div style={{flex:1,overflowY:'auto'}}>
+          {filtered.map((r,i)=>{
+            const cStyle=CALIDAD_STYLE[r.calidad_simple]||{bg:'#f0f0ee',color:'#666'};
+            const tStyle=TARGET_STYLE[r.es_target]||{bg:'#f0f0ee',color:'#666'};
+            return(
+              <div key={i} className="lead-row" onClick={()=>onSelectLead(r)}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
+                  <div>
+                    <span style={{fontSize:12,fontWeight:500}}>{r.nombre||'Sin nombre'}</span>
+                    <span style={{fontSize:11,color:'#aaa',marginLeft:6}}>#{r.id}</span>
+                  </div>
+                  <div style={{display:'flex',gap:4,flexShrink:0}}>
+                    <span className="badge" style={{background:tStyle.bg,color:tStyle.color}}>{r.es_target}</span>
+                    {r.es_target==='SI'&&<span className="badge" style={{background:cStyle.bg,color:cStyle.color}}>{r.calidad_simple}</span>}
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:'#666',display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <span>{FLAG[r.pais]||'🏳️'} {r.pais}</span>
+                  <span>·</span>
+                  <span>{r.canal}</span>
+                  <span>·</span>
+                  <span>{r.asesor||'Sin asesor'}</span>
+                </div>
+                <div style={{fontSize:10,color:'#aaa',marginTop:3}}>{r.campana} · {(r.fechaRegistro||'').slice(0,10)}</div>
+              </div>
+            );
+          })}
+          {filtered.length===0&&<div style={{padding:24,textAlign:'center',color:'#aaa',fontSize:12}}>Sin resultados</div>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Modal detalle de un lead
+function LeadDetail({lead,onClose}){
+  if(!lead)return null;
+  const cStyle=CALIDAD_STYLE[lead.calidad_simple]||{bg:'#f0f0ee',color:'#666'};
+  const tStyle=TARGET_STYLE[lead.es_target]||{bg:'#f0f0ee',color:'#666'};
+  const fields=[
+    ['ID',lead.id],['Nombre',lead.nombre],['Teléfono',lead.telefono],['Correo',lead.correo],
+    ['Restaurante',lead.restaurante],['País',`${FLAG[lead.pais]||''} ${lead.pais}`],
+    ['Ciudad',lead.ciudad],['Canal',lead.canal],['Campaña',lead.campana],
+    ['Asesor',lead.asesor],['Estado',lead.estadoCliente],['Conversión',lead.conversion],
+    ['Plan',lead.plan],['Producto',lead.producto],['Creó cuenta',lead.creo_cuenta],
+    ['Es nuevo',lead.es_nuevo],['Intentos contacto',lead.intentosDeContacto],
+    ['Último intento',lead.ultimoIntentoContacto],['Fecha registro',(lead.fechaRegistro||'').slice(0,10)],
+    ['Problema principal',lead.problema_principal],['Objeción',lead.objecion],
+  ];
+  return(
+    <>
+      <div className="leads-overlay" onClick={onClose}/>
+      <div className="leads-panel" style={{width:420}}>
+        <div style={{padding:'14px 16px',borderBottom:'0.5px solid #e0e0de',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+          <div>
+            <div style={{fontWeight:500,fontSize:14}}>{lead.nombre||'Sin nombre'}</div>
+            <div style={{display:'flex',gap:4,marginTop:4}}>
+              <span className="badge" style={{background:tStyle.bg,color:tStyle.color}}>{lead.es_target}</span>
+              {lead.es_target==='SI'&&<span className="badge" style={{background:cStyle.bg,color:cStyle.color}}>{lead.calidad_simple}</span>}
+            </div>
+          </div>
+          <button onClick={onClose} style={{border:'none',background:'#f0f0ee',borderRadius:6,padding:'6px 10px',fontSize:12}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:'12px 16px'}}>
+          {fields.filter(([,v])=>v&&v!=='').map(([k,v])=>(
+            <div key={k} style={{display:'flex',padding:'7px 0',borderBottom:'0.5px solid #f8f8f6'}}>
+              <span style={{fontSize:11,color:'#888',width:140,flexShrink:0}}>{k}</span>
+              <span style={{fontSize:11,color:'#111'}}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function App(){
-  const [rows,setRows] = React.useState([]);
-  const [loading,setLoading] = React.useState(true);
-  const [error,setError] = React.useState(null);
-  const [pais,setPais] = React.useState('all');
-  const [mes,setMes] = React.useState('all');
-  const [tab,setTab] = React.useState('resumen');
-  const [lastUpdate,setLastUpdate] = React.useState('');
+  const [rows,setRows]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [error,setError]=React.useState(null);
+  const [pais,setPais]=React.useState('all');
+  const [mes,setMes]=React.useState('all');
+  const [tab,setTab]=React.useState('resumen');
+  const [lastUpdate,setLastUpdate]=React.useState('');
+  const [activeKPI,setActiveKPI]=React.useState(null);
+  const [panelLeads,setPanelLeads]=React.useState(null);
+  const [panelTitle,setPanelTitle]=React.useState('');
+  const [selectedLead,setSelectedLead]=React.useState(null);
 
   React.useEffect(()=>{
-    fetch(CSV_URL)
-      .then(r=>r.text())
-      .then(text=>{
-        setRows(parseCSV(text));
-        setLastUpdate(new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
-        setLoading(false);
-      })
-      .catch(()=>{setError('Error al cargar datos.');setLoading(false);});
+    fetch(CSV_URL).then(r=>r.text()).then(text=>{
+      setRows(parseCSV(text));
+      setLastUpdate(new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
+      setLoading(false);
+    }).catch(()=>{setError('Error al cargar datos.');setLoading(false);});
   },[]);
 
-  if(loading) return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}>
-      <div style={{fontSize:40}}>⏳</div>
-      <div style={{fontSize:14,color:'#666'}}>Cargando datos desde Google Sheets...</div>
-    </div>
-  );
+  const openPanel=(title,leads)=>{setPanelTitle(title);setPanelLeads(leads);setSelectedLead(null);};
+  const closePanel=()=>{setPanelLeads(null);setSelectedLead(null);setActiveKPI(null);};
 
-  if(error) return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}>
-      <div style={{fontSize:40}}>⚠️</div>
-      <div style={{fontSize:14,color:'#D85A30'}}>{error}</div>
-      <div style={{fontSize:12,color:'#aaa'}}>Verifica que el Sheet esté publicado como CSV</div>
-    </div>
-  );
+  const handleKPI=(key,title,leads)=>{
+    if(activeKPI===key){closePanel();}
+    else{setActiveKPI(key);openPanel(title,leads);}
+  };
+
+  if(loading)return(<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}><div style={{fontSize:40}}>⏳</div><div style={{fontSize:14,color:'#666'}}>Cargando datos...</div></div>);
+  if(error)return(<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12}}><div style={{fontSize:40}}>⚠️</div><div style={{fontSize:14,color:'#D85A30'}}>{error}</div></div>);
 
   const mesesDisponibles=[...new Set(rows.map(r=>(r.fechaRegistro||'').slice(5,7)).filter(Boolean))].sort();
   const paisesDisponibles=[...new Set(rows.filter(r=>PAISES_VALIDOS.includes(r.pais)).map(r=>r.pais).filter(Boolean))].sort();
@@ -126,57 +228,47 @@ function App(){
   const filtered=rows.filter(r=>{
     const okPais=pais==='all'||r.pais===pais;
     const okMes=mes==='all'||(r.fechaRegistro||'').slice(5,7)===mes;
-    const okValido=PAISES_VALIDOS.includes(r.pais);
-    return okPais&&okMes&&okValido;
+    return okPais&&okMes&&PAISES_VALIDOS.includes(r.pais);
   });
 
   const totLeads=filtered.length;
-
-  // Segmentos de target
   const targetSI=filtered.filter(r=>r.es_target==='SI');
   const targetNO=filtered.filter(r=>r.es_target==='NO');
-  const targetSinContactar=filtered.filter(r=>r.es_target==='Sin contactar');
-
-  // Calidad SOLO de leads con es_target=SI
-  const buenos=targetSI.filter(r=>r.calidad_simple==='Bueno').length;
-  const regulares=targetSI.filter(r=>r.calidad_simple==='Regular').length;
-  const malos=targetSI.filter(r=>r.calidad_simple==='Malo').length;
-  const sinAsignar=targetSI.filter(r=>r.calidad_simple==='Sin asignar').length;
-
-  const targets=targetSI.length;
-  const convertidos=filtered.filter(r=>r.conversion&&r.conversion!=='PENDIENTE'&&r.conversion!=='').length;
-  const creoCuenta=filtered.filter(r=>r.creo_cuenta==='SI'||r.creo_cuenta==='si').length;
+  const targetSC=filtered.filter(r=>r.es_target==='Sin contactar');
+  const buenos=targetSI.filter(r=>r.calidad_simple==='Bueno');
+  const regulares=targetSI.filter(r=>r.calidad_simple==='Regular');
+  const malos=targetSI.filter(r=>r.calidad_simple==='Malo');
+  const sinAsignar=targetSI.filter(r=>r.calidad_simple==='Sin asignar');
+  const convertidos=filtered.filter(r=>r.conversion&&r.conversion!=='PENDIENTE'&&r.conversion!=='');
+  const creoCuenta=filtered.filter(r=>r.creo_cuenta==='SI'||r.creo_cuenta==='si');
 
   const byPais={};
   filtered.forEach(r=>{
     const p=r.pais||'Desconocido';
-    if(!byPais[p])byPais[p]={leads:0,buenos:0,targets:0,convertidos:0};
-    byPais[p].leads++;
-    if(r.calidad_simple?.toLowerCase().includes('bueno')||r.calidadComercial?.toLowerCase().includes('bueno'))byPais[p].buenos++;
-    if(r.es_target==='SI')byPais[p].targets++;
-    if(r.conversion&&r.conversion!=='PENDIENTE')byPais[p].convertidos++;
+    if(!byPais[p])byPais[p]={leads:[],targetSI:[],buenos:[]};
+    byPais[p].leads.push(r);
+    if(r.es_target==='SI'){byPais[p].targetSI.push(r);}
+    if(r.calidad_simple==='Bueno')byPais[p].buenos.push(r);
   });
-  const paisList=Object.entries(byPais).sort((a,b)=>b[1].leads-a[1].leads);
-  const maxLeadsPais=Math.max(...paisList.map(([,v])=>v.leads),1);
+  const paisList=Object.entries(byPais).sort((a,b)=>b[1].leads.length-a[1].leads.length);
+  const maxLeadsPais=Math.max(...paisList.map(([,v])=>v.leads.length),1);
 
   const byCanal={};
-  filtered.forEach(r=>{const c=r.canal||'Otros';byCanal[c]=(byCanal[c]||0)+1;});
-  const canalList=Object.entries(byCanal).sort((a,b)=>b[1]-a[1]);
-  const maxCanal=Math.max(...canalList.map(([,v])=>v),1);
+  filtered.forEach(r=>{const c=r.canal||'Otros';if(!byCanal[c])byCanal[c]=[];byCanal[c].push(r);});
+  const canalList=Object.entries(byCanal).sort((a,b)=>b[1].length-a[1].length);
 
   const byCampana={};
-  filtered.forEach(r=>{const c=r.campana||'Sin campaña';byCampana[c]=(byCampana[c]||0)+1;});
-  const campanaList=Object.entries(byCampana).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const maxCamp=Math.max(...campanaList.map(([,v])=>v),1);
+  filtered.forEach(r=>{const c=r.campana||'Sin campaña';if(!byCampana[c])byCampana[c]=[];byCampana[c].push(r);});
+  const campanaList=Object.entries(byCampana).sort((a,b)=>b[1].length-a[1].length).slice(0,8);
 
   const byMes={};
-  filtered.forEach(r=>{const m=(r.fechaRegistro||'').slice(0,7);if(m)byMes[m]=(byMes[m]||0)+1;});
+  filtered.forEach(r=>{const m=(r.fechaRegistro||'').slice(0,7);if(m){if(!byMes[m])byMes[m]=[];byMes[m].push(r);}});
   const mesList=Object.entries(byMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const maxMesVal=Math.max(...mesList.map(([,v])=>v),1);
+  const maxMesVal=Math.max(...mesList.map(([,v])=>v.length),1);
 
   const byEstado={};
-  filtered.forEach(r=>{const e=r.estadoCliente||'Sin estado';byEstado[e]=(byEstado[e]||0)+1;});
-  const estadoList=Object.entries(byEstado).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  filtered.forEach(r=>{const e=r.estadoCliente||'Sin estado';if(!byEstado[e])byEstado[e]=[];byEstado[e].push(r);});
+  const estadoList=Object.entries(byEstado).sort((a,b)=>b[1].length-a[1].length).slice(0,6);
 
   const card={background:'#fff',border:'0.5px solid #e0e0de',borderRadius:12,padding:'14px 16px'};
   const cardHd={fontSize:11,fontWeight:500,color:'#888',textTransform:'uppercase',letterSpacing:'.04em',marginBottom:12};
@@ -191,47 +283,66 @@ function App(){
           <span style={{fontSize:10,color:'#aaa',fontWeight:400}}>· {fmtN(rows.length)} leads · act. {lastUpdate}</span>
         </div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          <select value={mes} onChange={e=>setMes(e.target.value)}>
+          <select value={mes} onChange={e=>{setMes(e.target.value);closePanel();}}
+            style={{fontSize:12,padding:'5px 10px',borderRadius:8,border:'0.5px solid #ccc',background:'#fff'}}>
             <option value="all">📅 Todos los meses</option>
             {mesesDisponibles.map(m=><option key={m} value={m}>{MESES_MAP[m]||m}</option>)}
           </select>
-          <select value={pais} onChange={e=>setPais(e.target.value)}>
+          <select value={pais} onChange={e=>{setPais(e.target.value);closePanel();}}
+            style={{fontSize:12,padding:'5px 10px',borderRadius:8,border:'0.5px solid #ccc',background:'#fff'}}>
             <option value="all">🌎 Todos los países</option>
             {paisesDisponibles.map(p=><option key={p} value={p}>{FLAG[p]||'🏳️'} {p}</option>)}
           </select>
           <button onClick={()=>window.location.reload()}
             style={{fontSize:12,padding:'5px 10px',borderRadius:8,border:'0.5px solid #ccc',background:'#fff'}}>
-            🔄 Actualizar
+            🔄
           </button>
         </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
-        <KPI label="Leads totales" value={fmtN(totLeads)} sub={`de ${fmtN(rows.length)} en total`}/>
-        <KPI label="🎯 Target SI" value={fmtN(targets)} sub={`${pct(targets,totLeads)}% del total`} subColor="#534AB7"/>
-        <KPI label="⛔ Target NO" value={fmtN(targetNO.length)} sub={`${pct(targetNO.length,totLeads)}%`} subColor="#D85A30"/>
-        <KPI label="📵 Sin contactar" value={fmtN(targetSinContactar.length)} sub={`${pct(targetSinContactar.length,totLeads)}%`} subColor="#BA7517"/>
-      </div>
+      {/* KPIs — FILA 1: TARGET */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:8}}>
-        <KPI label="✅ Buenos" value={fmtN(buenos)} sub={`${pct(buenos,targets)}% de targets`} subColor="#1D9E75"/>
-        <KPI label="🟡 Regulares" value={fmtN(regulares)} sub={`${pct(regulares,targets)}% de targets`} subColor="#BA7517"/>
-        <KPI label="🔴 Malos" value={fmtN(malos)} sub={`${pct(malos,targets)}% de targets`} subColor="#D85A30"/>
-        <KPI label="⬜ Sin asignar" value={fmtN(sinAsignar)} sub={`${pct(sinAsignar,targets)}% de targets`} subColor="#888"/>
+        <KPIBtn label="📋 Leads totales" value={fmtN(totLeads)} sub={`${fmtN(rows.length)} en base`}
+          active={activeKPI==='total'} onClick={()=>handleKPI('total','Todos los leads',filtered)}/>
+        <KPIBtn label="🎯 Target SI" value={fmtN(targetSI.length)} sub={`${pct(targetSI.length,totLeads)}% del total`}
+          subColor="#534AB7" active={activeKPI==='tSI'} activeColor="#534AB7"
+          onClick={()=>handleKPI('tSI','Leads Target SI',targetSI)}/>
+        <KPIBtn label="⛔ Target NO" value={fmtN(targetNO.length)} sub={`${pct(targetNO.length,totLeads)}%`}
+          subColor="#D85A30" active={activeKPI==='tNO'} activeColor="#D85A30"
+          onClick={()=>handleKPI('tNO','Leads Target NO',targetNO)}/>
+        <KPIBtn label="📵 Sin contactar" value={fmtN(targetSC.length)} sub={`${pct(targetSC.length,totLeads)}%`}
+          subColor="#BA7517" active={activeKPI==='tSC'} activeColor="#BA7517"
+          onClick={()=>handleKPI('tSC','Leads sin contactar',targetSC)}/>
       </div>
+
+      {/* KPIs — FILA 2: CALIDAD (solo Target SI) */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:8}}>
+        <KPIBtn label="✅ Buenos" value={fmtN(buenos.length)} sub={`${pct(buenos.length,targetSI.length)}% de targets`}
+          subColor="#1D9E75" active={activeKPI==='buenos'} activeColor="#1D9E75"
+          onClick={()=>handleKPI('buenos','Leads Buenos (Target SI)',buenos)}/>
+        <KPIBtn label="🟡 Regulares" value={fmtN(regulares.length)} sub={`${pct(regulares.length,targetSI.length)}%`}
+          subColor="#BA7517" active={activeKPI==='regulares'} activeColor="#BA7517"
+          onClick={()=>handleKPI('regulares','Leads Regulares (Target SI)',regulares)}/>
+        <KPIBtn label="🔴 Malos" value={fmtN(malos.length)} sub={`${pct(malos.length,targetSI.length)}%`}
+          subColor="#D85A30" active={activeKPI==='malos'} activeColor="#D85A30"
+          onClick={()=>handleKPI('malos','Leads Malos (Target SI)',malos)}/>
+        <KPIBtn label="⬜ Sin asignar" value={fmtN(sinAsignar.length)} sub={`${pct(sinAsignar.length,targetSI.length)}%`}
+          subColor="#888" active={activeKPI==='sinA'} activeColor="#888"
+          onClick={()=>handleKPI('sinA','Leads Sin Asignar (Target SI)',sinAsignar)}/>
+      </div>
+
       {/* Validación funnel */}
-      <div style={{marginBottom:16,padding:'8px 12px',background: buenos+regulares+malos+sinAsignar===targets?'#E1F5EE':'#FCEBEB',borderRadius:8,fontSize:11,color:buenos+regulares+malos+sinAsignar===targets?'#0F6E56':'#A32D2D'}}>
-        {buenos+regulares+malos+sinAsignar===targets
-          ? `✅ Funnel correcto — ${targets} targets = ${buenos} buenos + ${regulares} regulares + ${malos} malos + ${sinAsignar} sin asignar`
-          : `⚠️ Verificar — targets: ${targets} ≠ suma calidad: ${buenos+regulares+malos+sinAsignar}`
+      <div style={{marginBottom:12,padding:'7px 12px',background:buenos.length+regulares.length+malos.length+sinAsignar.length===targetSI.length?'#E1F5EE':'#FCEBEB',borderRadius:8,fontSize:11,color:buenos.length+regulares.length+malos.length+sinAsignar.length===targetSI.length?'#0F6E56':'#A32D2D'}}>
+        {buenos.length+regulares.length+malos.length+sinAsignar.length===targetSI.length
+          ?`✅ Funnel correcto — ${targetSI.length} targets = ${buenos.length}B + ${regulares.length}R + ${malos.length}M + ${sinAsignar.length}SA`
+          :`⚠️ Verificar — targets: ${targetSI.length} ≠ suma calidad: ${buenos.length+regulares.length+malos.length+sinAsignar.length}`
         }
       </div>
 
       {/* TABS */}
       <div style={{display:'flex',gap:2,background:'#e8e8e6',padding:3,borderRadius:8,width:'fit-content',marginBottom:14}}>
         {['resumen','calidad','campañas','pipeline'].map(t=>(
-          <button key={t} onClick={()=>setTab(t)}
-            style={{fontSize:11,padding:'5px 14px',borderRadius:6,border:'none',
-              background:tab===t?'#fff':'transparent',fontWeight:tab===t?500:400,color:tab===t?'#111':'#666'}}>
+          <button key={t} className={`tab-btn${tab===t?' on':''}`} onClick={()=>setTab(t)}>
             {t.charAt(0).toUpperCase()+t.slice(1)}
           </button>
         ))}
@@ -241,29 +352,27 @@ function App(){
       {tab==='resumen'&&(
         <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr',gap:10}}>
           <div style={card}>
-            <div style={cardHd}>Leads por país</div>
+            <div style={cardHd}>Leads por país <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
               <thead><tr>
-                {['País','Leads','Buenos','Target','Conv.'].map(h=>(
+                {['País','Leads','Target SI','Buenos','Conv.'].map(h=>(
                   <th key={h} style={{textAlign:h==='País'?'left':'right',color:'#aaa',fontWeight:500,padding:'4px 6px 8px',borderBottom:'0.5px solid #e0e0de'}}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {paisList.map(([p,v])=>(
-                  <tr key={p}>
+                  <tr key={p} style={{cursor:'pointer'}} onClick={()=>openPanel(`Leads · ${FLAG[p]||''} ${p}`,v.leads)}>
                     <td style={{padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee'}}>
                       <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
                         <span style={{width:7,height:7,borderRadius:'50%',background:PAIS_COLORS[p]||'#ccc',display:'inline-block'}}/>
                         {FLAG[p]||'🏳️'} {p}
                       </span>
                     </td>
-                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',fontWeight:500}}>{fmtN(v.leads)}</td>
-                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#1D9E75'}}>{fmtN(v.buenos)}</td>
-                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#534AB7'}}>{fmtN(v.targets)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',fontWeight:500}}>{fmtN(v.leads.length)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#534AB7'}}>{fmtN(v.targetSI.length)}</td>
+                    <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee',color:'#1D9E75'}}>{fmtN(v.buenos.length)}</td>
                     <td style={{textAlign:'right',padding:'7px 6px',borderBottom:'0.5px solid #f0f0ee'}}>
-                      <span style={{background:v.convertidos>0?'#E1F5EE':'#f5f5f3',color:v.convertidos>0?'#0F6E56':'#888',fontSize:9,padding:'2px 6px',borderRadius:10}}>
-                        {pct(v.convertidos,v.leads)}%
-                      </span>
+                      <span style={{background:'#f0f0ee',color:'#888',fontSize:9,padding:'2px 6px',borderRadius:10}}>{pct(v.buenos.length,v.targetSI.length||1)}%</span>
                     </td>
                   </tr>
                 ))}
@@ -272,20 +381,23 @@ function App(){
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
             <div style={card}>
-              <div style={cardHd}>Por canal</div>
+              <div style={cardHd}>Por canal <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
               {canalList.map(([c,v])=>(
-                <ProgBar key={c} label={c} value={v} max={maxCanal} color="#534AB7" displayVal={fmtN(v)}/>
+                <ProgBar key={c} label={c} value={v.length} max={canalList[0]?.[1].length||1} color="#534AB7"
+                  displayVal={fmtN(v.length)} onClick={()=>openPanel(`Canal · ${c}`,v)}/>
               ))}
             </div>
             <div style={card}>
-              <div style={cardHd}>Tendencia mensual</div>
+              <div style={cardHd}>Tendencia mensual <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic en barra)</span></div>
               <div style={{display:'flex',alignItems:'flex-end',gap:3,height:60}}>
                 {mesList.map(([m,v],i)=>{
-                  const h=Math.max(4,Math.round(v/maxMesVal*60));
+                  const h=Math.max(4,Math.round(v.length/maxMesVal*60));
                   return(
-                    <div key={m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
-                      <div style={{fontSize:9,color:'#aaa'}}>{v>50?fmtN(v):''}</div>
-                      <div style={{height:h,width:'100%',background:i===mesList.length-1?'#534AB7':'#d0cfe8',borderRadius:'2px 2px 0 0'}}/>
+                    <div key={m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,cursor:'pointer'}}
+                      onClick={()=>openPanel(`Mes · ${MESES_MAP[m.slice(5)]||m}`,v)}>
+                      <div style={{fontSize:9,color:'#aaa'}}>{v.length>50?fmtN(v.length):''}</div>
+                      <div style={{height:h,width:'100%',background:i===mesList.length-1?'#534AB7':'#d0cfe8',borderRadius:'2px 2px 0 0',transition:'opacity .15s'}}
+                        onMouseEnter={e=>e.target.style.opacity='.7'} onMouseLeave={e=>e.target.style.opacity='1'}/>
                       <div style={{fontSize:9,color:'#aaa'}}>{m.slice(5)}</div>
                     </div>
                   );
@@ -300,54 +412,52 @@ function App(){
       {tab==='calidad'&&(
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           <div style={card}>
-            <div style={cardHd}>Funnel · Solo Target SI ({fmtN(targets)} leads)</div>
+            <div style={cardHd}>Funnel · Target SI ({fmtN(targetSI.length)} leads)</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
               {[
-                {label:'✅ Buenos',val:buenos,bg:'#E1F5EE',bc:'#9FE1CB',tc:'#085041',sc:'#1D9E75'},
-                {label:'🟡 Regulares',val:regulares,bg:'#FAEEDA',bc:'#FAC775',tc:'#633806',sc:'#BA7517'},
-                {label:'🔴 Malos',val:malos,bg:'#FCEBEB',bc:'#F7C1C1',tc:'#791F1F',sc:'#E24B4A'},
-                {label:'⬜ Sin asignar',val:sinAsignar,bg:'#F1EFE8',bc:'#D3D1C7',tc:'#444441',sc:'#888780'},
+                {key:'buenos',label:'✅ Buenos',arr:buenos,bg:'#E1F5EE',bc:'#9FE1CB',tc:'#085041',sc:'#1D9E75'},
+                {key:'regulares',label:'🟡 Regulares',arr:regulares,bg:'#FAEEDA',bc:'#FAC775',tc:'#633806',sc:'#BA7517'},
+                {key:'malos',label:'🔴 Malos',arr:malos,bg:'#FCEBEB',bc:'#F7C1C1',tc:'#791F1F',sc:'#E24B4A'},
+                {key:'sinA',label:'⬜ Sin asignar',arr:sinAsignar,bg:'#F1EFE8',bc:'#D3D1C7',tc:'#444441',sc:'#888780'},
               ].map(q=>(
-                <div key={q.label} style={{background:q.bg,border:`0.5px solid ${q.bc}`,borderRadius:8,padding:'10px 12px'}}>
+                <div key={q.key} style={{background:q.bg,border:`0.5px solid ${q.bc}`,borderRadius:8,padding:'10px 12px',cursor:'pointer'}}
+                  onClick={()=>handleKPI(q.key,`Leads ${q.label}`,q.arr)}>
                   <div style={{fontSize:10,fontWeight:500,color:q.sc,marginBottom:4}}>{q.label}</div>
-                  <div style={{fontSize:26,fontWeight:500,color:q.tc,lineHeight:1}}>{fmtN(q.val)}</div>
-                  <div style={{fontSize:10,color:q.sc,marginTop:3}}>{pct(q.val,targets)}% de targets</div>
+                  <div style={{fontSize:26,fontWeight:500,color:q.tc,lineHeight:1}}>{fmtN(q.arr.length)}</div>
+                  <div style={{fontSize:10,color:q.sc,marginTop:3}}>{pct(q.arr.length,targetSI.length)}% de targets</div>
                 </div>
               ))}
             </div>
             <div style={{height:8,borderRadius:4,overflow:'hidden',display:'flex'}}>
-              {[{v:buenos,c:'#1D9E75'},{v:regulares,c:'#BA7517'},{v:malos,c:'#E24B4A'},{v:sinAsignar,c:'#ccc'}].map((s,i)=>(
+              {[{v:buenos.length,c:'#1D9E75'},{v:regulares.length,c:'#BA7517'},{v:malos.length,c:'#E24B4A'},{v:sinAsignar.length,c:'#ccc'}].map((s,i)=>(
                 <div key={i} style={{flex:Math.max(s.v,0.1),background:s.c}}/>
               ))}
             </div>
-            <div style={{marginTop:12,padding:'8px 10px',background:'#f5f5f3',borderRadius:6,fontSize:11,color:'#555'}}>
-              <strong>Total Target SI:</strong> {targets} = {buenos}B + {regulares}R + {malos}M + {sinAsignar}SA
-            </div>
           </div>
           <div style={card}>
-            <div style={cardHd}>Distribución general de leads</div>
+            <div style={cardHd}>Segmentos <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
             {[
-              {label:'🎯 Target SI',val:targets,color:'#534AB7'},
-              {label:'⛔ Target NO',val:targetNO.length,color:'#D85A30'},
-              {label:'📵 Sin contactar',val:targetSinContactar.length,color:'#BA7517'},
+              {label:'🎯 Target SI',arr:targetSI,color:'#534AB7'},
+              {label:'⛔ Target NO',arr:targetNO,color:'#D85A30'},
+              {label:'📵 Sin contactar',arr:targetSC,color:'#BA7517'},
             ].map(s=>(
-              <div key={s.label} style={{marginBottom:14}}>
+              <div key={s.label} style={{marginBottom:14,cursor:'pointer'}} onClick={()=>openPanel(s.label,s.arr)}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                   <span style={{fontSize:11,color:'#555'}}>{s.label}</span>
-                  <span style={{fontSize:11,fontWeight:500}}>{fmtN(s.val)} <span style={{color:'#aaa',fontWeight:400}}>({pct(s.val,totLeads)}%)</span></span>
+                  <span style={{fontSize:11,fontWeight:500}}>{fmtN(s.arr.length)} <span style={{color:'#aaa',fontWeight:400}}>({pct(s.arr.length,totLeads)}%)</span></span>
                 </div>
                 <div style={{height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${pct(s.val,totLeads)}%`,background:s.color,borderRadius:3}}/>
+                  <div style={{height:'100%',width:`${pct(s.arr.length,totLeads)}%`,background:s.color,borderRadius:3}}/>
                 </div>
               </div>
             ))}
             <div style={{marginTop:16,paddingTop:12,borderTop:'0.5px solid #e8e8e6'}}>
-              <div style={{fontSize:11,color:'#888',marginBottom:8}}>Calidad por país · solo Target SI</div>
+              <div style={cardHd}>Calidad por país · Target SI</div>
               {paisList.map(([p,v])=>{
-                const tSI=targetSI.filter(r=>r.pais===p).length||1;
-                const bSI=targetSI.filter(r=>r.pais===p&&r.calidad_simple==='Bueno').length;
+                const tSI=v.targetSI.length||1;
+                const bSI=v.buenos.length;
                 return(
-                  <div key={p} style={{marginBottom:10}}>
+                  <div key={p} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>openPanel(`${FLAG[p]||''} ${p} · Target SI`,v.targetSI)}>
                     <div style={{fontSize:11,marginBottom:3,display:'flex',justifyContent:'space-between'}}>
                       <span>{FLAG[p]||'🏳️'} {p}</span>
                       <span style={{color:'#aaa',fontSize:10}}>{pct(bSI,tSI)}% buenos</span>
@@ -368,23 +478,27 @@ function App(){
       {tab==='campañas'&&(
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           <div style={card}>
-            <div style={cardHd}>Top campañas</div>
+            <div style={cardHd}>Top campañas <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
             {campanaList.map(([c,v])=>(
-              <ProgBar key={c} label={c.length>32?c.slice(0,30)+'…':c} value={v} max={maxCamp} color="#534AB7" displayVal={fmtN(v)}/>
+              <ProgBar key={c} label={c.length>32?c.slice(0,30)+'…':c} value={v.length}
+                max={campanaList[0]?.[1].length||1} color="#534AB7" displayVal={fmtN(v.length)}
+                onClick={()=>openPanel(`Campaña · ${c}`,v)}/>
             ))}
           </div>
           <div style={card}>
-            <div style={cardHd}>Estado del lead</div>
+            <div style={cardHd}>Estado del lead <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
             {estadoList.map(([e,v])=>(
-              <ProgBar key={e} label={e.length>28?e.slice(0,26)+'…':e} value={v} max={estadoList[0]?.[1]||1} color="#1D9E75" displayVal={fmtN(v)}/>
+              <ProgBar key={e} label={e.length>28?e.slice(0,26)+'…':e} value={v.length}
+                max={estadoList[0]?.[1].length||1} color="#1D9E75" displayVal={fmtN(v.length)}
+                onClick={()=>openPanel(`Estado · ${e}`,v)}/>
             ))}
             <div style={{marginTop:16,paddingTop:12,borderTop:'0.5px solid #e8e8e6'}}>
               <div style={{fontSize:11,color:'#888',marginBottom:6}}>Creó cuenta</div>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={()=>openPanel('Crearon cuenta',creoCuenta)}>
                 <div style={{flex:1,height:8,background:'#e8e8e6',borderRadius:4,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${pct(creoCuenta,totLeads)}%`,background:'#1D9E75',borderRadius:4}}/>
+                  <div style={{height:'100%',width:`${pct(creoCuenta.length,totLeads)}%`,background:'#1D9E75',borderRadius:4}}/>
                 </div>
-                <span style={{fontSize:13,fontWeight:500,color:'#1D9E75'}}>{pct(creoCuenta,totLeads)}%</span>
+                <span style={{fontSize:13,fontWeight:500,color:'#1D9E75'}}>{pct(creoCuenta.length,totLeads)}%</span>
               </div>
             </div>
           </div>
@@ -395,29 +509,41 @@ function App(){
       {tab==='pipeline'&&(
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           <div style={card}>
-            <div style={cardHd}>Volumen por país</div>
+            <div style={cardHd}>Volumen por país <span style={{fontWeight:400,textTransform:'none',fontSize:10}}>(clic para ver leads)</span></div>
             {paisList.map(([p,v])=>(
-              <ProgBar key={p} label={`${FLAG[p]||'🏳️'} ${p}`} value={v.leads} max={maxLeadsPais} color={PAIS_COLORS[p]||'#ccc'} displayVal={fmtN(v.leads)}/>
+              <ProgBar key={p} label={`${FLAG[p]||'🏳️'} ${p}`} value={v.leads.length}
+                max={maxLeadsPais} color={PAIS_COLORS[p]||'#ccc'} displayVal={fmtN(v.leads.length)}
+                onClick={()=>openPanel(`${FLAG[p]||''} ${p} · Todos los leads`,v.leads)}/>
             ))}
           </div>
           <div style={card}>
             <div style={cardHd}>Conversión por país</div>
             {paisList.map(([p,v])=>(
-              <div key={p} style={{marginBottom:12}}>
+              <div key={p} style={{marginBottom:12,cursor:'pointer'}} onClick={()=>openPanel(`${FLAG[p]||''} ${p} · Target SI`,v.targetSI)}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                   <span style={{fontSize:11,color:'#555'}}>{FLAG[p]||'🏳️'} {p}</span>
-                  <span style={{fontSize:11,color:'#aaa'}}>{fmtN(v.convertidos)} conv.</span>
+                  <span style={{fontSize:11,color:'#aaa'}}>{fmtN(v.targetSI.length)} target · {fmtN(v.buenos.length)} buenos</span>
                 </div>
                 <div style={{height:6,background:'#e8e8e6',borderRadius:3,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${Math.min(100,pct(v.convertidos,v.leads)*5)}%`,background:PAIS_COLORS[p]||'#ccc',borderRadius:3}}/>
+                  <div style={{height:'100%',width:`${Math.min(100,pct(v.buenos.length,v.targetSI.length||1))}%`,background:PAIS_COLORS[p]||'#ccc',borderRadius:3}}/>
                 </div>
                 <div style={{fontSize:9,color:'#aaa',marginTop:2}}>
-                  {pct(v.convertidos,v.leads)}% conv · {pct(v.buenos,v.leads)}% buenos
+                  {pct(v.buenos.length,v.targetSI.length||1)}% buenos de targets · {pct(v.targetSI.length,v.leads.length)}% son target
                 </div>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Panel de leads */}
+      {panelLeads&&!selectedLead&&(
+        <LeadsPanel leads={panelLeads} title={panelTitle} onClose={closePanel} onSelectLead={setSelectedLead}/>
+      )}
+
+      {/* Detalle de un lead */}
+      {selectedLead&&(
+        <LeadDetail lead={selectedLead} onClose={()=>setSelectedLead(null)}/>
       )}
     </div>
   );
